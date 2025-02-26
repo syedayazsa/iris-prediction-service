@@ -3,7 +3,7 @@ A production-ready machine learning service that predicts Iris flower species us
 
 ## Project Structure
 
-```
+```bash
 iris-prediction-service/
 ├── src/
 │   ├── __init__.py
@@ -44,20 +44,20 @@ iris-prediction-service/
 ## Installation & Setup
 
 1. Clone the repository:
-```
+```bash
 git clone https://github.com/yourusername/iris-prediction-service.git
 cd iris-prediction-service
 ```
 
 2. Create and activate a virtual environment:
 
-```
+```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 3. Install dependencies:
 
-```
+```bash
 pip install -r requirements.txt
 ```
 
@@ -66,13 +66,13 @@ pip install -r requirements.txt
 ### Training the Model
 
 Train the model using default parameters:
-```
+```bash
 python -m src.train
 ```
 
 To specify model directory, model name, and test size:
 
-```
+```bash
 python -m src.train --model-dir models --model-name custom_model --test-size 0.3
 ```
 
@@ -80,36 +80,36 @@ python -m src.train --model-dir models --model-name custom_model --test-size 0.3
 
 #### Local Development
 
-```
+```bash
 python -m src.serve
 ```
 
 #### Production (using Gunicorn)
 
-```
+```bash
 gunicorn --bind 0.0.0.0:5000 src.serve:app
 ```
 
 ### Running the Gradio Interface
 
-```
+```bash
 python -m src.demo_gradio
 ```
 
 ### Docker Deployment
 
 1. Build the Docker image:
-```
+```bash
 docker build -t iris-inference-server .
 ```
 
 2. Run the Docker container:
-```
+```bash
 docker run -p 5000:5000 iris-inference-server
 ```
 
 3. or using Docker Compose:
-```
+```bash
 docker-compose up
 ```
 
@@ -150,7 +150,7 @@ pytest tests/test_model_service.py
 ```
 
 ### Run Tests with Coverage
-```
+```bash
 pytest --cov=src tests/
 ```
 
