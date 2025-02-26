@@ -4,8 +4,10 @@ Flask application exposing an endpoint for Iris model inference.
 
 import json
 import logging
+import os
 from flask import Flask, request, jsonify
 from src.model_service import IrisModelService
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -83,7 +85,22 @@ def predict_proba():
     })
 
 
+@app.route("/health", methods=["GET"])
+def health_check():
+    """
+    Health check endpoint for monitoring and Docker healthcheck.
+    """
+    return jsonify({
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "service": "iris-prediction-api"
+    })
+
+
 if __name__ == "__main__":
-    # For local dev, can run "python serve.py" directly.
-    # In production, we usually run via Gunicorn (see Dockerfile).
-    app.run(host="0.0.0.0", port=8000, debug=False)
+    port = int(os.getenv("PORT", 8000))
+    workers = int(os.getenv("GUNICORN_WORKERS", 4))
+    threads = int(os.getenv("GUNICORN_THREADS", 2))
+    timeout = int(os.getenv("GUNICORN_TIMEOUT", 30))
+    
+    app.run(host="0.0.0.0", port=port, debug=False)
