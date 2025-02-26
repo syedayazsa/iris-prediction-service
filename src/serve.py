@@ -5,7 +5,7 @@ Flask application exposing an endpoint for Iris model inference.
 import json
 import logging
 from flask import Flask, request, jsonify
-from model_service import IrisModelService
+from src.model_service import IrisModelService
 
 app = Flask(__name__)
 
@@ -13,7 +13,7 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 # Instantiate the model service at startup
-model_service = IrisModelService(model_dir="models", model_name="iris_model")
+model_service = IrisModelService(model_dir="src/models", model_name="iris_model")
 
 
 @app.route("/predict", methods=["POST"])
@@ -47,4 +47,4 @@ def predict():
 if __name__ == "__main__":
     # For local dev, can run "python serve.py" directly.
     # In production, we usually run via Gunicorn (see Dockerfile).
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=8000, debug=False)
