@@ -3,27 +3,31 @@ Flask application exposing an endpoint for Iris model inference.
 """
 
 import json
-import logging
 import os
 from flask import Flask, request, jsonify
 from src.model_service import IrisModelService
 from datetime import datetime
+from src.utils.logging_config import logger_config
+import time
 
 app = Flask(__name__)
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+loggers = logger_config.loggers
+request_logger = logger_config.get_request_logger()
 
 # Instantiate the model service at startup
 model_service = IrisModelService(model_dir="src/models", model_name="iris_model")
 
-
 @app.route("/predict", methods=["POST"])
+@request_logger
 def predict():
     data = request.get_json(force=True)
     feature_inputs = data.get("input")
 
     if not feature_inputs:
+        loggers['error'].warning(
+            "Invalid request: No input provided",
+            extra={'request_id': request.headers.get('X-Request-ID', str(time.time()))}
+        )
         return jsonify({"error": "No 'input' provided."}), 400
 
     try:
@@ -38,21 +42,31 @@ def predict():
 
         predicted_labels = model_service.predict(feature_inputs)
         
+        loggers['model'].info(
+            "Prediction made",
+            extra={
+                'prediction_details': {
+                    'input_size': len(feature_inputs),
+                    'predictions': predicted_labels
+                },
+                'request_id': request.headers.get('X-Request-ID', str(time.time()))
+            }
+        )
+        
+        return jsonify({"prediction": predicted_labels})
+        
     except Exception as e:
+        loggers['error'].error(
+            "Prediction error",
+            extra={
+                'error_details': str(e),
+                'request_id': request.headers.get('X-Request-ID', str(time.time()))
+            }
+        )
         return jsonify({"error": str(e)}), 400
 
-    # Log prediction in structured JSON
-    log_record = {
-        "event": "prediction",
-        "inputs": feature_inputs,
-        "predictions": predicted_labels
-    }
-    logging.info(json.dumps(log_record))
-
-    return jsonify({"prediction": predicted_labels})
-
-
 @app.route("/predict-proba", methods=["POST"])
+@request_logger
 def predict_proba():
     """
     Flask endpoint for predicting Iris species with probabilities.
@@ -77,25 +91,24 @@ def predict_proba():
         "predictions": predicted_labels,
         "probabilities": probabilities
     }
-    logging.info(json.dumps(log_record))
+    loggers['model'].info(json.dumps(log_record))
 
     return jsonify({
         "prediction": predicted_labels,
         "probabilities": probabilities
     })
 
-
 @app.route("/health", methods=["GET"])
+@request_logger
 def health_check():
     """
     Health check endpoint for monitoring and Docker healthcheck.
     """
     return jsonify({
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now().isoformat(),
         "service": "iris-prediction-api"
     })
-
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
