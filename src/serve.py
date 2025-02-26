@@ -44,6 +44,39 @@ def predict():
     return jsonify({"prediction": predicted_labels})
 
 
+@app.route("/predict-proba", methods=["POST"])
+def predict_proba():
+    """
+    Flask endpoint for predicting Iris species with probabilities.
+    Expects a JSON body with a key 'input' containing a list of feature lists.
+
+    Returns:
+        JSON response containing both predicted labels and class probabilities.
+    """
+    data = request.get_json(force=True)
+    feature_inputs = data.get("input")
+
+    if not feature_inputs:
+        return jsonify({"error": "No 'input' provided."}), 400
+
+    predicted_labels = model_service.predict(feature_inputs)
+    probabilities = model_service.predict_proba(feature_inputs)
+
+    # Log prediction in structured JSON
+    log_record = {
+        "event": "prediction_with_probabilities",
+        "inputs": feature_inputs,
+        "predictions": predicted_labels,
+        "probabilities": probabilities
+    }
+    logging.info(json.dumps(log_record))
+
+    return jsonify({
+        "prediction": predicted_labels,
+        "probabilities": probabilities
+    })
+
+
 if __name__ == "__main__":
     # For local dev, can run "python serve.py" directly.
     # In production, we usually run via Gunicorn (see Dockerfile).

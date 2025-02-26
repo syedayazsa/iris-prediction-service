@@ -37,3 +37,15 @@ class IrisModelService:
         predictions = self._model.predict(inputs)
         predicted_labels = [self._class_names[idx] for idx in predictions]
         return predicted_labels
+
+    def predict_proba(self, inputs: List[List[float]]) -> List[List[float]]:
+        """
+        Get probability predictions for each class using the loaded RandomForest model.
+
+        Args:
+            inputs: A list of feature vectors, each containing 4 float values.
+        
+        Returns:
+            List[List[float]]: A list of probability distributions across classes.
+        """
+        return self._model.predict_proba(inputs).tolist()
