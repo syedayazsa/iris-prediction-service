@@ -7,13 +7,13 @@ WORKDIR /app
 # Copy only the necessary files
 COPY requirements.txt .
 COPY src/ src/
-COPY models/ models/
+COPY src/models/ src/models/
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose the port the app runs on
-EXPOSE 5000
+EXPOSE 8000
 
 # Command to run the API server using gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "src.serve:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "src.serve:app"]
