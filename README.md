@@ -98,6 +98,10 @@ python -m src.demo_gradio
 
 ### Docker Deployment
 
+#### Local Docker Deployment
+
+For simple local deployment with Docker:
+
 1. Build the Docker image:
 ```bash
 docker build -t iris-inference-server .
@@ -108,12 +112,67 @@ docker build -t iris-inference-server .
 docker run -p 8000:8000 iris-inference-server
 ```
 
-3. or using Docker Compose:
+#### Production Deployment with Docker Compose
+
+For production-like deployment using Docker Compose:
+
+1. Build and start the services:
 ```bash
-docker-compose up
+docker-compose up --build -d
 ```
 
+2. Check the service status:
+```bash
+docker-compose ps
+```
+
+3. View logs:
+```bash
+docker-compose logs -f iris-api
+```
+
+4. Scale the service (if needed):
+```bash
+docker-compose up -d --scale iris-api=3
+```
+
+5. Stop the services:
+```bash
+docker-compose down
+```
+
+#### Environment Configuration
+
+The service can be configured using the following environment variables:
+
+- `PORT`: The port on which the API server listens (default: 8000)
+- `GUNICORN_WORKERS`: Number of Gunicorn worker processes (default: 4)
+- `GUNICORN_THREADS`: Number of threads per worker (default: 2)
+- `GUNICORN_TIMEOUT`: Worker timeout in seconds (default: 30)
+- `FLASK_ENV`: Flask environment setting (production/development)
+
+#### Health Monitoring
+
+The service includes a health check endpoint at `/health` that returns:
+- Current service status
+- Timestamp
+- Service identification
+
+This endpoint is used by Docker for container health monitoring.
+
 ## API Endpoints
+
+### GET /health
+Health check endpoint for monitoring.
+
+Response format:
+```json
+{
+    "status": "healthy",
+    "timestamp": "2024-03-14T12:00:00.000Z",
+    "service": "iris-prediction-api"
+}
+```
 
 ### POST /predict
 Predicts Iris species for given measurements.
@@ -132,7 +191,6 @@ Response format:
   "prediction": ["setosa"]  // Or multiple predictions for batch input
 }
 ```
-
 
 ## Testing
 
