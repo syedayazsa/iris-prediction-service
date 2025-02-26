@@ -18,20 +18,26 @@ model_service = IrisModelService(model_dir="src/models", model_name="iris_model"
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    """
-    Flask endpoint for predicting Iris species.
-    Expects a JSON body with a key 'input' containing a list of feature lists.
-
-    Returns:
-        JSON response containing the predicted labels.
-    """
     data = request.get_json(force=True)
     feature_inputs = data.get("input")
 
     if not feature_inputs:
         return jsonify({"error": "No 'input' provided."}), 400
 
-    predicted_labels = model_service.predict(feature_inputs)
+    try:
+        if not isinstance(feature_inputs, list):
+            return jsonify({"error": "Input must be a list of feature lists"}), 400
+            
+        if any(len(features) != 4 for features in feature_inputs):
+            return jsonify({"error": "Each feature list must contain exactly 4 features"}), 400
+            
+        if any(not all(isinstance(x, (int, float)) for x in features) for features in feature_inputs):
+            return jsonify({"error": "All features must be numeric values"}), 400
+
+        predicted_labels = model_service.predict(feature_inputs)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
     # Log prediction in structured JSON
     log_record = {
