@@ -1,0 +1,50 @@
+"""
+Flask application exposing an endpoint for Iris model inference.
+"""
+
+import json
+import logging
+from flask import Flask, request, jsonify
+from model_service import IrisModelService
+
+app = Flask(__name__)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+# Instantiate the model service at startup
+model_service = IrisModelService(model_dir="models", model_name="iris_model")
+
+
+@app.route("/predict", methods=["POST"])
+def predict():
+    """
+    Flask endpoint for predicting Iris species.
+    Expects a JSON body with a key 'input' containing a list of feature lists.
+
+    Returns:
+        JSON response containing the predicted labels.
+    """
+    data = request.get_json(force=True)
+    feature_inputs = data.get("input")
+
+    if not feature_inputs:
+        return jsonify({"error": "No 'input' provided."}), 400
+
+    predicted_labels = model_service.predict(feature_inputs)
+
+    # Log prediction in structured JSON
+    log_record = {
+        "event": "prediction",
+        "inputs": feature_inputs,
+        "predictions": predicted_labels
+    }
+    logging.info(json.dumps(log_record))
+
+    return jsonify({"prediction": predicted_labels})
+
+
+if __name__ == "__main__":
+    # For local dev, can run "python serve.py" directly.
+    # In production, we usually run via Gunicorn (see Dockerfile).
+    app.run(host="0.0.0.0", port=5000, debug=False)

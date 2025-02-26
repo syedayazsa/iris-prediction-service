@@ -1,0 +1,16 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment directories
+.venv/
+venv/
+env/
+
+# Environment variable files
+.env
+
+# Pytest cache
+.pytest_cache/
