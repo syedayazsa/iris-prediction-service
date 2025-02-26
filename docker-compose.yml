@@ -11,11 +11,18 @@ services:
       - "8000:8000"
     volumes:
       - ./src/models:/app/src/models
+      - ./logs:/app/logs
     environment:
       - FLASK_ENV=production
       - GUNICORN_WORKERS=4
       - GUNICORN_THREADS=2
       - GUNICORN_TIMEOUT=30
+      - LOG_LEVEL=INFO
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
