@@ -45,7 +45,7 @@ iris-prediction-service/
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/iris-prediction-service.git
+git clone git@github.com:syedayazsa/iris-prediction-service.git
 cd iris-prediction-service
 ```
 
@@ -216,3 +216,150 @@ pytest --cov=src tests/
 - Follows **PEP 8** guidelines.
 - Uses   **type hints**.
 - Includes **docstrings** for all functions and classes.
+
+## Logging and Monitoring
+
+The service implements comprehensive structured logging and monitoring capabilities to track model inference, performance metrics, and system health.
+
+### Logging System
+
+#### Structured JSON Logging
+All logs are formatted as JSON objects with consistent fields:
+```json
+{
+  "timestamp": "2024-03-14T12:00:00.000Z",
+  "level": "INFO",
+  "message": "Request processed: /predict",
+  "module": "serve",
+  "request_metrics": {
+    "endpoint": "/predict",
+    "method": "POST",
+    "status_code": 200,
+    "latency_ms": 45.23,
+    "request_id": "1234-5678",
+    "input_shape": [1, 4],
+    "error": null
+  }
+}
+```
+
+#### Request Tracking
+Each request is automatically logged with:
+- Unique request ID (X-Request-ID header)
+- Endpoint path and HTTP method
+- Response status code
+- Request latency in milliseconds
+- Input data shape for ML monitoring
+- Error details (if any)
+
+#### ML-Specific Metrics
+The service tracks:
+- Model prediction counts
+- Input data distributions
+- Prediction latencies
+- Error rates and types
+- Batch sizes and shapes
+
+### Monitoring Setup
+
+#### Local Monitoring
+Logs are written to both console and files:
+```bash
+# View real-time logs
+docker-compose logs -f iris-api
+
+# Check logs directory
+ls -l logs/
+```
+
+#### Docker Configuration
+The service uses Docker's json-file logging driver with rotation:
+```yaml
+logging:
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+```
+
+#### Environment Variables
+Logging can be configured via environment variables:
+- `LOG_LEVEL`: Set logging level (default: INFO)
+- `FLASK_ENV`: Environment setting affecting log verbosity
+
+### Integration with Monitoring Tools
+
+The structured JSON logs can be easily integrated with:
+
+#### ELK Stack (Elasticsearch, Logstash, Kibana)
+1. **Logstash**: Configure Logstash to read logs from the Docker container or log files. Use the `json` codec to parse the structured logs.
+   ```bash
+   input {
+     file {
+       path => "/path/to/logs/*.log"
+       start_position => "beginning"
+       codec => "json"
+     }
+   }
+   ```
+
+2. **Elasticsearch**: Send the parsed logs to Elasticsearch for storage and indexing.
+
+3. **Kibana**: Use Kibana to visualize the logs and create dashboards for monitoring request metrics, error rates, and system health.
+
+#### Prometheus and Grafana
+1. **Prometheus**: Use a Prometheus client library to expose metrics from your Flask application. Create a `/metrics` endpoint that Prometheus can scrape.
+   ```python
+   from prometheus_flask_exporter import PrometheusMetrics
+
+   metrics = PrometheusMetrics(app)
+   ```
+
+2. **Grafana**: Connect Grafana to your Prometheus instance to visualize the metrics. Create dashboards to monitor request latencies, error rates, and other performance metrics.
+
+#### Example Prometheus Metrics
+You can track metrics such as:
+- Total requests
+- Successful requests
+- Failed requests
+- Request latencies
+- Custom application metrics
+
+### Log Directory Structure
+```bash
+logs/
+├── access.log    # API request logs
+├── error.log     # Error and exception logs
+└── metrics.log   # Performance and ML metrics
+```
+
+### Request Tracing
+
+To trace specific requests:
+1. Add an X-Request-ID header to your request
+2. Use the request ID to follow the request through logs:
+```bash
+curl -H "X-Request-ID: test-123" -X POST http://localhost:8000/predict -d '{"input": [[5.1, 3.5, 1.4, 0.2]]}'
+```
+
+### Monitoring Best Practices
+
+1. **Regular Metrics Review**
+   - Monitor prediction latencies
+   - Track error rates
+   - Review input data distributions
+
+2. **Alert Configuration**
+   - Set up alerts for high error rates
+   - Monitor latency thresholds
+   - Track resource utilization
+
+3. **Log Retention**
+   - Logs are rotated every 10MB
+   - Keep last 3 log files
+   - Archive older logs if needed
+
+4. **Performance Monitoring**
+   - Track request latencies
+   - Monitor concurrent requests
+   - Watch resource usage
