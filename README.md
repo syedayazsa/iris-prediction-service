@@ -87,7 +87,7 @@ python -m src.serve
 #### Production (using Gunicorn)
 
 ```bash
-gunicorn --bind 0.0.0.0:5000 src.serve:app
+gunicorn --bind 0.0.0.0:8000 src.serve:app
 ```
 
 ### Running the Gradio Interface
@@ -105,7 +105,7 @@ docker build -t iris-inference-server .
 
 2. Run the Docker container:
 ```bash
-docker run -p 5000:5000 iris-inference-server
+docker run -p 8000:8000 iris-inference-server
 ```
 
 3. or using Docker Compose:
