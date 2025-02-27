@@ -5,7 +5,7 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile
-    image: iris-prediction-service
+    image: syedayazsa/iris-prediction-service:latest
     container_name: iris-api
     ports:
       - "8000:8000"
