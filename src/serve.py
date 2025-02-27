@@ -101,9 +101,7 @@ def predict_proba():
 @app.route("/health", methods=["GET"])
 @request_logger
 def health_check():
-    """
-    Health check endpoint for monitoring and Docker healthcheck.
-    """
+    """Health check endpoint for monitoring."""
     return jsonify({
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
