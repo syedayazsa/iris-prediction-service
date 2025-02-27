@@ -5,9 +5,9 @@ Flask application exposing an endpoint for Iris model inference.
 import json
 import os
 from flask import Flask, request, jsonify
-from src.model_service import IrisModelService
+from model_service import IrisModelService
 from datetime import datetime
-from src.utils.logging_config import logger_config
+from utils.logging_config import logger_config
 import time
 
 app = Flask(__name__)
@@ -99,7 +99,6 @@ def predict_proba():
     })
 
 @app.route("/health", methods=["GET"])
-@request_logger
 def health_check():
     """Health check endpoint for monitoring."""
     return jsonify({
