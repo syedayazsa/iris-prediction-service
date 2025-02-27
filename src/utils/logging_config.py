@@ -102,13 +102,19 @@ class RequestLogger:
         """Make the class callable as a decorator."""
         @wraps(func)
         def wrapper(*args, **kwargs):
-            # Only try to access request context inside the actual request
             start_time = time.time()
+            error = None
             
             try:
                 response = func(*args, **kwargs)
-                status_code = response.status_code if response else 500
-                error = None
+                # Handle both tuple returns (response, status_code) and direct response objects
+                if isinstance(response, tuple):
+                    status_code = response[1]
+                    response_obj = response[0]
+                else:
+                    status_code = response.status_code
+                    response_obj = response
+                    
             except Exception as e:
                 status_code = 500
                 error = str(e)
