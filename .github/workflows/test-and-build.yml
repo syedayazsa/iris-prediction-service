@@ -36,5 +36,5 @@ jobs:
     - name: Test Docker container
       run: |
         docker run -d -p 8000:8000 syedayazsa/iris-prediction-service:latest
-        sleep 5
-        curl -f http://localhost:8000/health 
+        sleep 10
+        curl -H "Content-Type: application/json" -f http://localhost:8000/health 
