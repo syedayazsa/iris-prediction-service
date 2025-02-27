@@ -41,6 +41,19 @@ iris-prediction-service/
 - `test_api.py`: Integration tests for the Flask API endpoints
 - `test_model_service.py`: Unit tests for the model service
 
+## CI/CD Pipeline
+
+The project uses GitHub Actions for CI/CD. The pipeline includes:
+
+- Testing with pytest
+- Building and pushing the Docker image to Docker Hub
+
+For modularity reason, each YAML file, `test-and-build.yml` and `publish.yml`, can focus on a specific task. The `test-and-build.yml` file is responsible for running tests and building the application, while the `publish.yml` file is dedicated to publishing the Docker image to Docker Hub. 
+
+Each workflow can be triggered by different events. For example, the test-and-build.yml might be triggered on every push or pull request, while the publish.yml is triggered only when a release is published. This allows for more control over when certain actions are taken.
+
+If the test or build process fails, it won't affect the publish process. This ensures that only tested and built images are published.
+
 ## Installation & Setup
 
 1. Clone the repository:
