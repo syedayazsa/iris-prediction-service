@@ -5,9 +5,9 @@ Flask application exposing an endpoint for Iris model inference.
 import json
 import os
 from flask import Flask, request, jsonify
-from model_service import IrisModelService
+from src.model_service import IrisModelService
 from datetime import datetime
-from utils.logging_config import logger_config
+from src.utils.logging_config import logger_config
 import time
 
 app = Flask(__name__)
