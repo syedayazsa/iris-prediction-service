@@ -1,5 +1,27 @@
 # Iris Species Prediction Service
-A production-ready machine learning service that predicts Iris flower species using a RandomForest classifier. The service includes a REST API, a Gradio web interface, and comprehensive tests.
+A production-ready machine learning service that predicts Iris flower species using a RandomForest classifier. The service includes a REST API, a Gradio web interface, and comprehensive tests. The system is designed with production-grade features including structured JSON logging, health monitoring, and containerized deployment options. It implements best practices for ML serving including input validation, error handling, and batch predictions.
+
+![System Architecture](./misc/system_architecture.png)
+
+## Table of Contents
+- [System Architecture](#system-architecture)
+- [Project Structure](#project-structure)
+- [Module Descriptions](#module-descriptions)
+  - [Core Modules](#core-modules)
+  - [Testing Modules](#testing-modules)
+- [CI/CD Pipeline](#cicd-pipeline)
+- [Installation & Setup](#installation--setup)
+- [Usage](#usage)
+  - [Training the Model](#training-the-model)
+  - [Running the API Server](#running-the-api-server)
+  - [Running the Gradio Interface](#running-the-gradio-interface)
+  - [Docker Deployment](#docker-deployment)
+- [API Endpoints](#api-endpoints)
+- [Testing](#testing)
+- [Logging and Monitoring](#logging-and-monitoring)
+- [Future Enhancements](#future-enhancements)
+
+Below is the high level architecture diagram of the system:
 
 ## Project Structure
 ```bash
@@ -34,6 +56,7 @@ iris-prediction-service/
 - `model_service.py`: Defines the IrisModelService class, which loads a trained RandomForest model for the Iris dataset. It provides methods to predict class labels (predict) and return class probabilities (predict_proba) based on input feature vectors. 
 - `demo_gradio.py`: Provides a UI where users can input flower measurements via sliders and receive predictions from the API. The interface supports both single-label predictions and probability-based confidence scores.
 
+![System Architecture](./misc/gradio_app.png)
 
 ### Testing Modules
 
