@@ -54,9 +54,9 @@ def test_prediction_endpoint_valid_input(client):
 
     # Test case 2: Multiple samples
     multi_input = {"input": [
-        [5.1, 3.5, 1.4, 0.2],  # likely setosa
-        [6.7, 3.1, 4.4, 1.4],  # likely versicolor
-        [6.3, 3.3, 6.0, 2.5]   # likely virginica
+        [5.1, 3.5, 1.4, 0.2],
+        [6.7, 3.1, 4.4, 1.4],
+        [6.3, 3.3, 6.0, 2.5]
     ]}
     response = client.post("/predict", json=multi_input)
     assert response.status_code == 200
@@ -66,24 +66,61 @@ def test_prediction_endpoint_valid_input(client):
 
 def test_prediction_endpoint_invalid_input(client):
     """
-    Test if the /predict endpoint handles invalid inputs appropriately.
+    Test if the /predict endpoint handles invalid inputs appropriately with correct status codes.
     """
     # Test case 1: Empty input
     response = client.post("/predict", json={"input": []})
-    assert response.status_code == 400
+    assert response.status_code == 422  # Unprocessable Entity
+    assert "error" in response.get_json()
 
     # Test case 2: Missing input key
     response = client.post("/predict", json={})
-    assert response.status_code == 400
+    assert response.status_code == 422  # Unprocessable Entity
     assert "error" in response.get_json()
 
-    # Test case 3: Invalid feature count
-    response = client.post("/predict", json={"input": [[1.0, 2.0, 3.0]]})  # Only 3 features
-    assert response.status_code == 400 or response.status_code == 500
+    # Test case 3: Invalid input format (not a list)
+    response = client.post("/predict", json={"input": "not a list"})
+    assert response.status_code == 400  # Bad Request
+    assert "error" in response.get_json()
 
-    # Test case 4: Invalid data types
+    # Test case 4: Wrong number of features
+    response = client.post("/predict", json={"input": [[1.0, 2.0, 3.0]]})
+    assert response.status_code == 422  # Unprocessable Entity
+    assert "error" in response.get_json()
+
+    # Test case 5: Non-numeric features
     response = client.post("/predict", json={"input": [["a", "b", "c", "d"]]})
-    assert response.status_code == 400 or response.status_code == 500
+    assert response.status_code == 415  # Unsupported Media Type
+    assert "error" in response.get_json()
+
+def test_prediction_proba_endpoint_invalid_input(client):
+    """
+    Test if the /predict-proba endpoint handles invalid inputs appropriately with correct status codes.
+    """
+    # Test case 1: Empty input
+    response = client.post("/predict-proba", json={"input": []})
+    assert response.status_code == 422  # Unprocessable Entity
+    assert "error" in response.get_json()
+
+    # Test case 2: Missing input key
+    response = client.post("/predict-proba", json={})
+    assert response.status_code == 422  # Unprocessable Entity
+    assert "error" in response.get_json()
+
+    # Test case 3: Invalid input format (not a list)
+    response = client.post("/predict-proba", json={"input": "not a list"})
+    assert response.status_code == 400  # Bad Request
+    assert "error" in response.get_json()
+
+    # Test case 4: Wrong number of features
+    response = client.post("/predict-proba", json={"input": [[1.0, 2.0, 3.0]]})
+    assert response.status_code == 422  # Unprocessable Entity
+    assert "error" in response.get_json()
+
+    # Test case 5: Non-numeric features
+    response = client.post("/predict-proba", json={"input": [["a", "b", "c", "d"]]})
+    assert response.status_code == 415  # Unsupported Media Type
+    assert "error" in response.get_json()
 
 def test_prediction_endpoint_boundary_values(client):
     """
@@ -116,3 +153,15 @@ def test_prediction_endpoint_performance(client):
     assert response.status_code == 200
     predictions = response.get_json()["prediction"]
     assert len(predictions) == n_samples
+
+def test_health_endpoint(client):
+    """
+    Test if the health check endpoint returns correct response.
+    """
+    response = client.get("/health")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert "status" in data
+    assert data["status"] == "healthy"
+    assert "timestamp" in data
+    assert "service" in data
