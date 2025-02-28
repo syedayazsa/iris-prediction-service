@@ -28,17 +28,17 @@ def predict():
             "Invalid request: No input provided",
             extra={'request_id': request.headers.get('X-Request-ID', str(time.time()))}
         )
-        return jsonify({"error": "No 'input' provided."}), 400
+        return jsonify({"error": "No 'input' provided."}), 422  # Unprocessable Entity
 
     try:
         if not isinstance(feature_inputs, list):
-            return jsonify({"error": "Input must be a list of feature lists"}), 400
+            return jsonify({"error": "Input must be a list of feature lists"}), 400  # Bad Request
             
         if any(len(features) != 4 for features in feature_inputs):
-            return jsonify({"error": "Each feature list must contain exactly 4 features"}), 400
+            return jsonify({"error": "Each feature list must contain exactly 4 features"}), 422  # Unprocessable Entity
             
         if any(not all(isinstance(x, (int, float)) for x in features) for features in feature_inputs):
-            return jsonify({"error": "All features must be numeric values"}), 400
+            return jsonify({"error": "All features must be numeric values"}), 415  # Unsupported Media Type
 
         predicted_labels = model_service.predict(feature_inputs)
         
@@ -63,7 +63,7 @@ def predict():
                 'request_id': request.headers.get('X-Request-ID', str(time.time()))
             }
         )
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"error": str(e)}), 500  # Internal Server Error
 
 @app.route("/predict-proba", methods=["POST"])
 @request_logger
@@ -79,24 +79,43 @@ def predict_proba():
     feature_inputs = data.get("input")
 
     if not feature_inputs:
-        return jsonify({"error": "No 'input' provided."}), 400
+        return jsonify({"error": "No 'input' provided."}), 422  # Unprocessable Entity
 
-    predicted_labels = model_service.predict(feature_inputs)
-    probabilities = model_service.predict_proba(feature_inputs)
+    try:
+        if not isinstance(feature_inputs, list):
+            return jsonify({"error": "Input must be a list of feature lists"}), 400  # Bad Request
+            
+        if any(len(features) != 4 for features in feature_inputs):
+            return jsonify({"error": "Each feature list must contain exactly 4 features"}), 422  # Unprocessable Entity
+            
+        if any(not all(isinstance(x, (int, float)) for x in features) for features in feature_inputs):
+            return jsonify({"error": "All features must be numeric values"}), 415  # Unsupported Media Type
 
-    # Log prediction in structured JSON
-    log_record = {
-        "event": "prediction_with_probabilities",
-        "inputs": feature_inputs,
-        "predictions": predicted_labels,
-        "probabilities": probabilities
-    }
-    loggers['model'].info(json.dumps(log_record))
+        predicted_labels = model_service.predict(feature_inputs)
+        probabilities = model_service.predict_proba(feature_inputs)
 
-    return jsonify({
-        "prediction": predicted_labels,
-        "probabilities": probabilities
-    })
+        # Log prediction in structured JSON
+        log_record = {
+            "event": "prediction_with_probabilities",
+            "inputs": feature_inputs,
+            "predictions": predicted_labels,
+            "probabilities": probabilities
+        }
+        loggers['model'].info(json.dumps(log_record))
+
+        return jsonify({
+            "prediction": predicted_labels,
+            "probabilities": probabilities
+        })
+    except Exception as e:
+        loggers['error'].error(
+            "Prediction error",
+            extra={
+                'error_details': str(e),
+                'request_id': request.headers.get('X-Request-ID', str(time.time()))
+            }
+        )
+        return jsonify({"error": str(e)}), 500  # Internal Server Error
 
 @app.route("/health", methods=["GET"])
 def health_check():
