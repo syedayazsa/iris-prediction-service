@@ -5,7 +5,6 @@ A Gradio-based front-end for interactive Iris model predictions.
 import gradio as gr
 from typing import Tuple
 import requests
-import json
 
 
 class GradioIrisDemo:
