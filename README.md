@@ -37,7 +37,7 @@ iris-prediction-service/
 
 ### Testing Modules
 
-- `test_api.py`: Holds integration tests validate the Flask API's endpoints by simulating real-world requests and checking responses. It uses pytest fixtures to create a temporary test model and a Flask test client for isolated testing. The tests cover valid and invalid input cases, boundary values, and API performance with large batches. Assertions verify correct responses, error handling, and consistency in predictions.
+- `test_api.py`: Holds integration tests validate the Flask API's endpoints by simulating real-world requests and checking responses. It uses pytest fixtures to create a temporary test model and a Flask test client for isolated testing. The tests cover valid and invalid input cases, boundary values, and API performance with large batches. Assertions are in place to verify correct responses, and error handling.
 
 
 ## CI/CD Pipeline
@@ -69,9 +69,9 @@ cd iris-prediction-service
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-   **Using Conda:**
+   **Using Conda (Recommended):**
    ```bash
-   conda create --name iris-env python=3.8
+   conda create --name iris-env python=3.9.21
    conda activate iris-env
    ```
 
@@ -88,12 +88,6 @@ pip install -r requirements.txt
 Train the model using default parameters:
 ```bash
 python -m src.train
-```
-
-To specify model directory, model name, and test size:
-
-```bash
-python -m src.train --model-dir models --model-name custom_model --test-size 0.3
 ```
 
 ### Running the API Server
@@ -150,27 +144,27 @@ For production-like deployment using Docker Compose, which includes features lik
 
 1. Build and start the services:
 ```bash
-docker-compose up --build -d
+docker compose up --build -d
 ```
 
 2. Check the service status (includes health check results):
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 3. View logs (JSON formatted with rotation):
 ```bash
-docker-compose logs -f iris-api
+docker compose logs -f iris-api
 ```
 
 4. Scale the service horizontally (if needed):
 ```bash
-docker-compose up -d --scale iris-api=3
+docker compose up -d --scale iris-api=3
 ```
 
 5. Stop the services:
 ```bash
-docker-compose down
+docker compose down
 ```
 
 #### Environment Configuration
@@ -200,12 +194,6 @@ The service includes automatic health monitoring that:
 - Retries 3 times before marking unhealthy
 - Waits 10 seconds before starting checks on container startup
 - Automatically restarts unhealthy containers
-
-#### Volume Mounts
-
-The Docker setup includes two important volume mounts:
-- `./src/models:/app/src/models`: Persists trained models
-- `./logs:/app/logs`: Stores application logs outside the container
 
 ## API Endpoints
 
@@ -290,26 +278,7 @@ curl -X POST http://localhost:8000/predict-proba \
 }
 ```
 
-### Request Headers
-
-All endpoints support the following optional headers:
-- `X-Request-ID`: Custom identifier for request tracking
-- `Content-Type`: application/json (optional, as server always expects JSON data)
-
-Using request headers can be beneficial for:
-- **Tracking Requests**: The `X-Request-ID` header allows you to trace specific requests through logs, making it easier to debug issues or analyze performance.
-- **API Documentation**: While the `Content-Type` header is not strictly required (the server always expects JSON), including it follows REST API best practices and makes the API usage more explicit.
-
-**Sample Request with Headers:**
-```bash
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -H "X-Request-ID: test-123" \
-  -d '{"input": [[5.1, 3.5, 1.4, 0.2]]}'
-```
-
 ## Testing
-
 The project includes comprehensive integration tests that verify the API endpoints' functionality, error handling, and performance characteristics.
 
 Run all tests:
@@ -338,8 +307,6 @@ pytest --cov=src tests/
 
 The service implements comprehensive structured logging and monitoring capabilities to track model inference, performance metrics, and system health. The logging system is built using Python's built-in logging module with custom JSON formatting and rotating file handlers.
 
-### Logging System
-
 #### Log Types and Files
 The service maintains separate log files for different concerns:
 - `access.log`: API request access logs
@@ -367,148 +334,34 @@ All logs are formatted as JSON objects with consistent fields:
   }
 }
 ```
+#### Monitoring System Integration
 
-#### Request Tracking
-Each request is automatically logged with:
-- Unique request ID (X-Request-ID header or timestamp if not provided)
-- Endpoint path and HTTP method
-- Remote address and user agent
-- Response status code
-- Request latency in milliseconds
-- Input data shape for ML monitoring
-- Error details (if any)
+The JSON-structured logs can be easily integrated with modern monitoring stacks for visualization and alerting. For an ELK stack integration, Filebeat can be configured to ship the JSON logs directly to Elasticsearch. This would allow for creation of detailed dashboards in Kibana for key metrics like request latency, prediction distributions, and error rates.
 
-#### ML-Specific Metrics
-The service tracks:
-- Model prediction counts and results
-- Input data shapes and distributions
-- Prediction latencies
-- Error rates and types
-- Batch sizes
-- Prediction probabilities (for /predict-proba endpoint)
+For a Prometheus-based setup, the service could expose a `/metrics` endpoint that translates key metrics from the performance logs into Prometheus format. This would allow tracking of request counts, latency percentiles, and prediction distributions. Grafana can then visualize these metrics with custom dashboards and alert rules.
 
-### Monitoring Setup
+For cloud deployments, the JSON logs can be streamed to services like AWS CloudWatch or Google Cloud Logging, which provide built-in parsing and visualization for structured logs. 
 
-#### Log Rotation
-All log files are automatically rotated using Python's RotatingFileHandler:
-- Maximum file size: 10MB (MAX_BYTES = 10485760)
-- Backup count: 3 files
-- Total maximum log storage: ~30MB per log type
+## Future Enhancements
 
-#### Local Monitoring
-Logs are written to both console (in development) and files:
-```bash
-# View real-time logs
-docker-compose logs -f iris-api
+### Advanced Orchestration and Scaling
+The service could be enhanced with Kubernetes orchestration to provide more scaling and deployment capabilities. This would enable features like automatic horizontal pod scaling based on CPU/memory usage or custom metrics like request latency. Implementation of a service mesh (like Istio) could provide advanced traffic management, security policies, and detailed telemetry. For multi-region deployments, a global load balancer could direct traffic to the nearest healthy instance.
 
-# Check logs directory
-ls -l logs/
-```
+### Enhanced Security Features
+Implementation of OAuth2/JWT authentication would enable fine-grained access control and user-specific rate limiting. API keys with different permission tiers could control access to specific endpoints or limit request volumes. Integration with vault services (like HashiCorp Vault) would provide secure storage and rotation of sensitive credentials. Network security could be enhanced through implementation of Web Application Firewall (WAF) rules for protecting against common attack vectors.
 
-#### Docker Configuration
-The service uses Docker's json-file logging driver with rotation:
-```yaml
-logging:
-  driver: "json-file"
-  options:
-    max-size: "10m"
-    max-file: "3"
-```
+### Model Management and MLOps
+A model registry could be implemented to track model versions, metadata, and performance metrics. This would enable A/B testing of different model versions and automatic rollback capabilities if performance degrades. Integration with ML monitoring tools could detect concept drift and trigger automated retraining pipelines. Implementation of feature stores would allow for consistent feature engineering across training and inference.
 
-#### Environment Variables
-Logging can be configured via environment variables:
-- `LOG_LEVEL`: Set logging level (default: INFO)
-- `FLASK_ENV`: Environment setting affecting log verbosity and console output
+### API Enhancements
+The API could be extended with batch processing optimizations for high-throughput scenarios, including async processing for large requests. API versioning could be implemented to ensure backward compatibility as the service evolves. Addition of a rate limiting service would protect against abuse while providing fair resource allocation among clients.
 
-### Health Monitoring
+### Infrastructure Improvements
+Infrastructure could be enhanced with multi-region deployment capabilities for improved global latency and disaster recovery.  Addition of automatic backup and restore capabilities would protect against data loss. Implementation of infrastructure as a code (IaaC) would ensure consistent environment provisioning.
 
-#### Health Check Endpoint
-The service provides a `/health` endpoint that returns:
-```json
-{
-    "status": "healthy",
-    "timestamp": "2024-03-14T12:00:00.000Z",
-    "service": "iris-prediction-api"
-}
-```
+### Caching and Performance
+Implementation of a distributed caching layer (like Redis) could improve response times for frequent predictions. Edge caching through a CDN could reduce latency for global users. Query result caching could optimize repeated predictions. Implementation of request coalescing could reduce load during high-concurrency scenarios.
 
-#### Docker Health Checks
-The service includes Docker health monitoring that:
-- Checks the `/health` endpoint every 30 seconds
-- Times out after 10 seconds
-- Retries 3 times before marking unhealthy
-- Waits 10 seconds before starting checks on container startup
-- Automatically restarts unhealthy containers
+### Documentation and Developer Experience
+The API documentation could be enhanced with interactive examples using tools like Swagger UI. Addition of performance benchmarking tools would help clients understand scaling characteristics.
 
-### Error Handling and Logging
-
-The service implements comprehensive error handling with appropriate logging:
-
-1. **Input Validation Errors**
-   - Missing input data
-   - Invalid feature counts
-   - Non-numeric features
-   - Malformed requests
-
-2. **Model Inference Errors**
-   - Model loading failures
-   - Prediction errors
-   - Shape mismatches
-
-3. **System Errors**
-   - Server errors
-   - Resource constraints
-   - Network issues
-
-Each error is logged with:
-- Error type and message
-- Request context
-- Stack trace (when appropriate)
-- Request ID for tracing
-
-### Request Tracing
-
-To trace specific requests through the system:
-
-1. Add an X-Request-ID header to your request:
-```bash
-curl -H "X-Request-ID: test-123" \
-     -X POST http://localhost:8000/predict \
-     -d '{"input": [[5.1, 3.5, 1.4, 0.2]]}'
-```
-
-2. Use the request ID to follow the request through different log files:
-```bash
-grep "test-123" logs/*.log
-```
-
-### Monitoring Best Practices
-
-1. **Regular Log Review**
-   - Monitor error rates and patterns
-   - Track prediction latencies
-   - Review input distributions
-   - Check system health status
-
-2. **Alert Configuration**
-   - Set up alerts for high error rates
-   - Monitor latency thresholds
-   - Track resource utilization
-   - Watch for repeated health check failures
-
-3. **Log Management**
-   - Regular log rotation
-   - Backup of important logs
-   - Periodic log analysis
-   - Storage monitoring
-
-4. **Performance Monitoring**
-   - Track request latencies
-   - Monitor concurrent requests
-   - Watch resource usage
-   - Analyze batch processing performance
-
-## Code Style
-- Follows **PEP 8** guidelines.
-- Uses **type hints**.
-- Includes **docstrings** for all functions and classes.
