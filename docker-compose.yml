@@ -10,7 +10,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./src/models:/app/src/models
+      - ./models:/app/models
       - ./logs:/app/logs
     environment:
       - FLASK_ENV=production
