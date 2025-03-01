@@ -1,79 +1,74 @@
-"""
-Flask application exposing an endpoint for Iris model inference.
-"""
-
 import json
 import os
-from flask import Flask, request, jsonify
-from src.model_service import IrisModelService
-from datetime import datetime
-from src.utils.logging_config import logger_config
 import time
+from flask import Flask, request, jsonify
+from datetime import datetime
+from src.model_service import IrisModelService
+from src.utils.logging_config import iris_logger, log_request
 
 app = Flask(__name__)
-loggers = logger_config.loggers
-request_logger = logger_config.get_request_logger()
 
 # Instantiate the model service at startup
-model_service = IrisModelService(model_dir="src/models", model_name="iris_model")
+model_service = IrisModelService(model_dir="models", model_name="iris_model")
 
 @app.route("/predict", methods=["POST"])
-@request_logger
+@log_request
 def predict():
+    """
+    Flask endpoint for predicting Iris species.
+    Expects a JSON body with a key 'input' containing a list of feature lists.
+    Returns JSON with the predicted labels.
+    """
     data = request.get_json(force=True)
     feature_inputs = data.get("input")
 
     if not feature_inputs:
-        loggers['error'].warning(
+        iris_logger.warning(
             "Invalid request: No input provided",
-            extra={'request_id': request.headers.get('X-Request-ID', str(time.time()))}
+            extra={"request_id": request.headers.get('X-Request-ID', str(time.time()))}
         )
         return jsonify({"error": "No 'input' provided."}), 422  # Unprocessable Entity
 
     try:
         if not isinstance(feature_inputs, list):
             return jsonify({"error": "Input must be a list of feature lists"}), 400  # Bad Request
-            
+
         if any(len(features) != 4 for features in feature_inputs):
-            return jsonify({"error": "Each feature list must contain exactly 4 features"}), 422  # Unprocessable Entity
-            
+            return jsonify({"error": "Each feature list must contain exactly 4 features"}), 422
+
         if any(not all(isinstance(x, (int, float)) for x in features) for features in feature_inputs):
             return jsonify({"error": "All features must be numeric values"}), 415  # Unsupported Media Type
 
         predicted_labels = model_service.predict(feature_inputs)
-        
-        loggers['model'].info(
+
+        iris_logger.info(
             "Prediction made",
             extra={
-                'prediction_details': {
-                    'input_size': len(feature_inputs),
-                    'predictions': predicted_labels
-                },
-                'request_id': request.headers.get('X-Request-ID', str(time.time()))
+                "request_id": request.headers.get('X-Request-ID', str(time.time())),
+                "predicted_labels": predicted_labels,
+                "input_size": len(feature_inputs)
             }
         )
-        
+
         return jsonify({"prediction": predicted_labels})
-        
+
     except Exception as e:
-        loggers['error'].error(
+        iris_logger.error(
             "Prediction error",
             extra={
-                'error_details': str(e),
-                'request_id': request.headers.get('X-Request-ID', str(time.time()))
+                "error": str(e),
+                "request_id": request.headers.get('X-Request-ID', str(time.time()))
             }
         )
         return jsonify({"error": str(e)}), 500  # Internal Server Error
 
 @app.route("/predict-proba", methods=["POST"])
-@request_logger
+@log_request
 def predict_proba():
     """
     Flask endpoint for predicting Iris species with probabilities.
-    Expects a JSON body with a key 'input' containing a list of feature lists.
-
-    Returns:
-        JSON response containing both predicted labels and class probabilities.
+    Expects a JSON body with 'input': a list of feature lists.
+    Returns JSON with predicted labels and class probabilities.
     """
     data = request.get_json(force=True)
     feature_inputs = data.get("input")
@@ -84,35 +79,36 @@ def predict_proba():
     try:
         if not isinstance(feature_inputs, list):
             return jsonify({"error": "Input must be a list of feature lists"}), 400  # Bad Request
-            
+
         if any(len(features) != 4 for features in feature_inputs):
-            return jsonify({"error": "Each feature list must contain exactly 4 features"}), 422  # Unprocessable Entity
-            
+            return jsonify({"error": "Each feature list must contain exactly 4 features"}), 422
+
         if any(not all(isinstance(x, (int, float)) for x in features) for features in feature_inputs):
             return jsonify({"error": "All features must be numeric values"}), 415  # Unsupported Media Type
 
         predicted_labels = model_service.predict(feature_inputs)
         probabilities = model_service.predict_proba(feature_inputs)
 
-        # Log prediction in structured JSON
-        log_record = {
-            "event": "prediction_with_probabilities",
-            "inputs": feature_inputs,
-            "predictions": predicted_labels,
-            "probabilities": probabilities
-        }
-        loggers['model'].info(json.dumps(log_record))
+        iris_logger.info(
+            "Prediction with probabilities",
+            extra={
+                "request_id": request.headers.get('X-Request-ID', str(time.time())),
+                "predicted_labels": predicted_labels,
+                "probabilities": probabilities
+            }
+        )
 
         return jsonify({
             "prediction": predicted_labels,
             "probabilities": probabilities
         })
+
     except Exception as e:
-        loggers['error'].error(
+        iris_logger.error(
             "Prediction error",
             extra={
-                'error_details': str(e),
-                'request_id': request.headers.get('X-Request-ID', str(time.time()))
+                "error": str(e),
+                "request_id": request.headers.get('X-Request-ID', str(time.time()))
             }
         )
         return jsonify({"error": str(e)}), 500  # Internal Server Error
@@ -128,8 +124,4 @@ def health_check():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
-    workers = int(os.getenv("GUNICORN_WORKERS", 4))
-    threads = int(os.getenv("GUNICORN_THREADS", 2))
-    timeout = int(os.getenv("GUNICORN_TIMEOUT", 30))
-    
     app.run(host="0.0.0.0", port=port, debug=False)
