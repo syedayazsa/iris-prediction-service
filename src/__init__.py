@@ -3,6 +3,6 @@ Core package for the Iris species prediction service.
 """
 
 from .model_service import IrisModelService
-from .demo_gradio import GradioIrisDemo
+from .app import GradioIrisDemo
 
 __all__ = ['IrisModelService', 'GradioIrisDemo']

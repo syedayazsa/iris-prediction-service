@@ -73,7 +73,7 @@ class GradioIrisDemo:
         Create and launch the Gradio interface.
         """
         with gr.Blocks() as demo:
-            gr.Markdown("## AyazIris Species Prediction Demo")
+            gr.Markdown("## IRIS-PREDICTION-SERVICE")
             gr.Markdown(
                 "Adjust the sliders below to set the iris flower measurements, then click **Predict**!"
             )
