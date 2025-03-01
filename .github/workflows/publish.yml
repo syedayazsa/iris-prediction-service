@@ -5,7 +5,25 @@ on:
     types: [published]
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        
+    - name: Run tests
+      run: pytest tests/
+
   push:
+    needs: test  # This ensures tests must pass before publishing
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
