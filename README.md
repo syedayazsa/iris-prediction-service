@@ -31,7 +31,7 @@ iris-prediction-service/
 │   ├── train.py            # Model training script
 │   ├── serve.py            # Flask API server
 │   ├── model_service.py    # Model inference service
-│   ├── demo_gradio.py      # Gradio web interface
+│   ├── app.py      # Gradio web interface
 │   ├── utils/
 │   │   ├── __init__.py
 │   │   └── logging_config.py
@@ -54,7 +54,7 @@ iris-prediction-service/
 - `train.py`: Trains a RandomForest classifier on the Iris dataset and saves both the model and its metadata
 - `serve.py`: Implements a Flask REST API for model inference. It provides an API for performing inference. It includes endpoints for predicting Iris species (/predict), returning class probabilities (/predict-proba), and a health check (/health). The application validates inputs, logs requests, and handles errors while running a preloaded model service. Also logs prediction requests, errors, and model inference details using a structured logging system for monitoring and debugging.
 - `model_service.py`: Defines the IrisModelService class, which loads a trained RandomForest model for the Iris dataset. It provides methods to predict class labels (predict) and return class probabilities (predict_proba) based on input feature vectors. 
-- `demo_gradio.py`: Provides a UI where users can input flower measurements via sliders and receive predictions from the API. The interface supports both single-label predictions and probability-based confidence scores.
+- `app.py`: Provides a UI where users can input flower measurements via sliders and receive predictions from the API. The interface supports both single-label predictions and probability-based confidence scores.
 
 ![System Architecture](./misc/gradio_app.png)
 
@@ -70,11 +70,25 @@ The project uses GitHub Actions for CI/CD. The pipeline includes:
 - Testing with pytest
 - Building and pushing the Docker image to Docker Hub
 
-For modularity reason, each YAML file, `test-and-build.yml` and `publish.yml`, can focus on a specific task. The `test-and-build.yml` file is responsible for running tests and building the application, while the `publish.yml` file is dedicated to publishing the Docker image to Docker Hub. 
+For modularity reason, each YAML file, `test-and-build.yml` and `publish.yml`, can focus on a specific task:
 
-Each workflow can be triggered by different events. For example, the test-and-build.yml is triggered on every push or pull request on the `main` branch, while the publish.yml is triggered when a release is published.
+1. `test-and-build.yml`:
+   - Triggered on every push or pull request to the `main` branch
+   - Runs tests and builds the application
+   - Verifies the Docker container works by testing the health endpoint
 
-If the test or build process fails, it won't affect the publish process ensuring that only tested and built images are published.
+2. `publish.yml`:
+   - Triggered when a release is published
+   - Runs tests to ensure code quality
+   - Only if tests pass, publishes the Docker image to Docker Hub with two tags:
+     - `latest`
+     - The specific release version
+
+This dual-workflow setup ensures code quality at multiple stages:
+- During development (via test-and-build.yml)
+- Before publishing releases (via publish.yml)
+
+The test requirements must pass in both workflows before any deployment or publishing can occur, maintaining consistent quality control throughout the pipeline.
 
 ## Installation & Setup
 
@@ -131,7 +145,7 @@ gunicorn --bind 0.0.0.0:8000 src.serve:app
 You can playaround with the sliders and receive predictions from the API via a web interface.
 
 ```bash
-python -m src.demo_gradio
+python -m src.app
 ```
 
 ### Docker Deployment
@@ -328,42 +342,67 @@ pytest --cov=src tests/
 
 ## Logging and Monitoring
 
-The service implements comprehensive structured logging and monitoring capabilities to track model inference, performance metrics, and system health. The logging system is built using Python's built-in logging module with custom JSON formatting and rotating file handlers.
+### Logging
 
-#### Log Types and Files
-The service maintains separate log files for different concerns:
-- `access.log`: API request access logs
-- `error.log`: Error and warning messages
-- `performance.log`: Request performance metrics
-- `model.log`: Model inference details
-- `security.log`: Security-related events
+The service implements structured JSON logging using a custom logging configuration that captures detailed request metrics and application events. All logs are output to stdout in a consistent JSON format, making them easily parsable by log aggregation tools.
 
-#### Structured JSON Logging
-All logs are formatted as JSON objects with consistent fields:
+Each log entry is structured as a JSON object with consistent base fields:
 ```json
 {
   "timestamp": "2024-03-14T12:00:00.000Z",
   "level": "INFO",
-  "message": "Request processed: /predict",
-  "module": "serve",
+  "message": "Request completed",
   "request_metrics": {
     "endpoint": "/predict",
     "method": "POST",
     "status_code": 200,
     "latency_ms": 45.23,
     "request_id": "1234-5678",
-    "input_shape": [1, 4],
     "error": null
   }
 }
 ```
+
+The logging system is implemented using Python's built-in logging module with following enhancements:
+
+1. **Request Metrics Tracking**
+   - Uses `@dataclass RequestMetrics` to ensure consistent metric structure
+   - Tracks essential fields: endpoint, method, status_code, latency, request_id
+   - Includes optional error field for exception tracking
+
+2. **Custom JSON Formatter**
+   - Implements a `JsonFormatter` class that formats logs as JSON
+   - Automatically includes timestamp, log level, and message
+   - Preserves additional context by including all non-internal attributes
+   - Filters out internal Python logging attributes to keep logs clean
+
+3. **Request Decorator**
+   - `@log_request` decorator wraps API endpoints for automatic logging
+   - Captures timing information for request latency calculation
+   - Extracts request ID from headers (X-Request-ID) or generates one
+   - Handles both successful requests and errors:
+     - Logs 500 errors from unhandled exceptions
+     - Captures 4xx errors from invalid requests
+     - Records response status codes
+
+4. **Error Handling**
+   - Different log levels for different scenarios:
+     - INFO: Normal request completion
+     - ERROR: 4xx/5xx status codes or exceptions
+   - Preserves error context in the logs
+   - Maintains request traceability via request_id
+
+All logs are written to stdout in JSON format, making them easy to collect and parse by container logging systems and log aggregation tools.
+
 #### Monitoring System Integration
 
-The JSON-structured logs can be easily integrated with modern monitoring stacks for visualization and alerting. For an ELK stack integration, Filebeat can be configured to ship the JSON logs directly to Elasticsearch. This would allow for creation of detailed dashboards in Kibana for key metrics like request latency, prediction distributions, and error rates.
+The JSON-structured logs from stdout can be integrated with modern monitoring and observability platforms. In a Kubernetes environment, these logs can be automatically collected by tools like Filebeat, which can parse the JSON structure and forward it to Elasticsearch. This would enable real-time visualization in Kibana, where one can creat dashboards tracking key metrics like endpoint latency distributions, error rates by status code, and request patterns identified by request_ids.
 
-For a Prometheus-based setup, the service could expose a `/metrics` endpoint that translates key metrics from the performance logs into Prometheus format. This would allow tracking of request counts, latency percentiles, and prediction distributions. Grafana can then visualize these metrics with custom dashboards and alert rules.
+For metric-based monitoring with Prometheus, the service's structured logs can be processed by a log exporter that converts the JSON metrics into Promethus format. This approach allows tracking of request durations, status code distributions, and error rates. The request_id field enables trace sampling for detailed performance analysis, while the error context helps in identifying and debugging issues. Grafana dashboards can then visualize these metrics, which would be useful to look into specific requests using the request_id.
 
-For cloud deployments, the JSON logs can be streamed to services like AWS CloudWatch or Google Cloud Logging, which provide built-in parsing and visualization for structured logs. 
+In cloud environments, the stdout JSON logs integrate naturally with services like AWS CloudWatch or Google Cloud Logging. These platforms can automatically parse the JSON structure, making fields like status_code, latency_ms, and error available for metric creation and alerting. The timestamp and request_id and structured error context would help in automated error detection and alerting.
+
+The monitoring tool integration would allow use cases like anomaly detection based on latency patterns, error rate trending, and endpoint usage analytics. The logging system can be extended to be compatible with ML monitoring platforms that can track model performance and drift through the logged prediction metrics.
 
 ## Future Enhancements
 
@@ -371,7 +410,7 @@ For cloud deployments, the JSON logs can be streamed to services like AWS CloudW
 The service could be enhanced with Kubernetes orchestration to provide more scaling and deployment capabilities. This would enable features like automatic horizontal pod scaling based on CPU/memory usage or custom metrics like request latency. Implementation of a service mesh (like Istio) could provide advanced traffic management, security policies, and detailed telemetry. For multi-region deployments, a global load balancer could direct traffic to the nearest healthy instance.
 
 ### Enhanced Security Features
-Implementation of OAuth2/JWT authentication would enable fine-grained access control and user-specific rate limiting. API keys with different permission tiers could control access to specific endpoints or limit request volumes. Integration with vault services (like HashiCorp Vault) would provide secure storage and rotation of sensitive credentials. Network security could be enhanced through implementation of Web Application Firewall (WAF) rules for protecting against common attack vectors.
+Implementation of OAuth2/JWT authentication would enable fine-grained access control and user-specific rate limiting. API keys with different permission tiers could control access to specific endpoints or limit request volumes. Integration with vault services would provide secure storage and rotation of sensitive credentials. Network security could be enhanced through implementation of Web Application Firewall (WAF) rules for protecting against common attack vectors.
 
 ### Model Management and MLOps
 A model registry could be implemented to track model versions, metadata, and performance metrics. This would enable A/B testing of different model versions and automatic rollback capabilities if performance degrades. Integration with ML monitoring tools could detect concept drift and trigger automated retraining pipelines. Implementation of feature stores would allow for consistent feature engineering across training and inference.
@@ -386,5 +425,5 @@ Infrastructure could be enhanced with multi-region deployment capabilities for i
 Implementation of a distributed caching layer (like Redis) could improve response times for frequent predictions. Edge caching through a CDN could reduce latency for global users. Query result caching could optimize repeated predictions. Implementation of request coalescing could reduce load during high-concurrency scenarios.
 
 ### Documentation and Developer Experience
-The API documentation could be enhanced with interactive examples using tools like Swagger UI. Addition of performance benchmarking tools would help clients understand scaling characteristics.
+The API documentation could be added as the ML Service gets more complex. Addition of performance benchmarking tools would help understand scaling characteristics.
 
