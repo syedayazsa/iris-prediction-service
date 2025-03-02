@@ -1,6 +1,8 @@
 # Iris Species Prediction Service
 A production-ready machine learning service that predicts Iris flower species using a RandomForest classifier. The service includes a REST API, a Gradio web interface, and comprehensive tests. The system is designed with production-grade features including structured JSON logging, health monitoring, and containerized deployment options. It implements best practices for ML serving including input validation, error handling, and batch predictions.
 
+Below is the high level architecture diagram of the system:
+
 ![System Architecture](./misc/system_architecture.png)
 
 ## Table of Contents
@@ -20,8 +22,6 @@ A production-ready machine learning service that predicts Iris flower species us
 - [Testing](#testing)
 - [Logging and Monitoring](#logging-and-monitoring)
 - [Future Enhancements](#future-enhancements)
-
-Below is the high level architecture diagram of the system:
 
 ## Project Structure
 ```bash
