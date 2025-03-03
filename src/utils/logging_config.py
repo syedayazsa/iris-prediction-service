@@ -31,6 +31,15 @@ class JsonFormatter(logging.Formatter):
     and any extra fields passed in the log call.
     """
     def format(self, record: logging.LogRecord) -> str:
+        """
+        Format the log record as JSON.
+
+        Args:
+            record (logging.LogRecord): The log record to format
+
+        Returns:
+            str: JSON-formatted log entry
+        """
         # Base fields for the log
         log_object = {
             "timestamp": datetime.utcnow().isoformat(),
@@ -38,7 +47,7 @@ class JsonFormatter(logging.Formatter):
             "message": record.getMessage()
         }
         
-        # These attributes are used internally by Python’s logging;
+        # These attributes are used internally by Python's logging;
         # we typically don't want them verbatim in the output.
         base_attrs = {
             'name', 'msg', 'args', 'levelname', 'levelno', 'pathname', 'filename',
@@ -67,6 +76,12 @@ def log_request(func):
     """
     Decorator to measure request latency and log errors & metrics.
     Captures and logs all 4xx or 5xx status codes, not just 500 exceptions.
+
+    Args:
+        func (callable): The function to wrap
+
+    Returns:
+        callable: The wrapped function that includes logging
     """
     @wraps(func)
     def wrapper(*args, **kwargs):

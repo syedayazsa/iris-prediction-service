@@ -16,8 +16,16 @@ model_service = IrisModelService(model_dir="models", model_name="iris_model")
 def predict():
     """
     Flask endpoint for predicting Iris species.
-    Expects a JSON body with a key 'input' containing a list of feature lists.
-    Returns JSON with the predicted labels.
+
+    Args:
+        None directly. Expects a JSON body with key 'input' containing a list of feature lists.
+        Each feature list should contain 4 numeric values representing sepal length, sepal width,
+        petal length, and petal width.
+
+    Returns:
+        JSON response with structure:
+        - On success: {"prediction": List[str]} where each str is a predicted species
+        - On error: {"error": str} with appropriate HTTP status code
     """
     data = request.get_json(force=True)
     feature_inputs = data.get("input")
@@ -67,8 +75,19 @@ def predict():
 def predict_proba():
     """
     Flask endpoint for predicting Iris species with probabilities.
-    Expects a JSON body with 'input': a list of feature lists.
-    Returns JSON with predicted labels and class probabilities.
+
+    Args:
+        None directly. Expects a JSON body with key 'input' containing a list of feature lists.
+        Each feature list should contain 4 numeric values representing sepal length, sepal width,
+        petal length, and petal width.
+
+    Returns:
+        JSON response with structure:
+        - On success: {
+            "prediction": List[str],
+            "probabilities": List[List[float]]
+          }
+        - On error: {"error": str} with appropriate HTTP status code
     """
     data = request.get_json(force=True)
     feature_inputs = data.get("input")
@@ -115,7 +134,20 @@ def predict_proba():
 
 @app.route("/health", methods=["GET"])
 def health_check():
-    """Health check endpoint for monitoring."""
+    """
+    Health check endpoint for monitoring.
+
+    Args:
+        None
+
+    Returns:
+        JSON response with structure:
+        {
+            "status": str,
+            "timestamp": str,
+            "service": str
+        }
+    """
     return jsonify({
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),

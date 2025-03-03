@@ -24,6 +24,11 @@ def train_and_save_model(
         model_name (str): Name of the model (used for files).
         test_size (float): Proportion of dataset to include in the test split.
         random_state (int): Random state for reproducibility.
+
+    Returns:
+        None. The function saves the following files:
+        - {model_name}.joblib: The trained model
+        - {model_name}_metadata.json: Model metadata including metrics and feature importance
     """
     # Create model directory if it doesn't exist
     model_dir = Path(model_dir)
