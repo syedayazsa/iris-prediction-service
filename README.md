@@ -421,6 +421,13 @@ The API could be extended with batch processing optimizations for high-throughpu
 ### Infrastructure Improvements
 Infrastructure could be enhanced with multi-region deployment capabilities for improved global latency and disaster recovery.  Addition of automatic backup and restore capabilities would protect against data loss. Implementation of infrastructure as a code (IaaC) would ensure consistent environment provisioning.
 
+### AWS ECS Deployment and Load Balancing
+We can improve the service architecture by deploying on AWS ECS, for container orchestration and automated scaling. With ECS, the Docker containers run on a cluster of EC2 instances, with the service automatically handling container placement and ensuring the right number of tasks are running at all times. By adding an Application Load Balancer (ALB) in front of the ECS services, we can distribute incoming traffic across the container instances, ensuring we use resources efficiently and maintain high availability. The ALB regularly checks the health of our containers, only sending traffic to those that are healthy, and it seamlessly adapts if a container fails or undergoes updates.
+
+Moreover, we can take advantage of ECS's auto-scaling features, which use CloudWatch metrics such as CPU utilization, memory usage, or even custom metrics from the application. For example, if the average CPU usage across the containers goes over 70%, ECS could automatically launch more instances to handle the load. Conversely, it can scale down when activity decreases, helping us optimize costs.
+
+To ensure that this service is always available, the iris-prediction-service can be deployed across multiple Availability Zones within a region, allowing the ALB to balance traffic between them automatically. For even greater reliability, a multi-region strategy using Route 53’s DNS-based routing would direct users to the closest healthy ECS cluster. This approach would reduce latency for the global users but also strengthens the disaster recovery capabilities.
+
 ### Caching and Performance
 Implementation of a distributed caching layer (like Redis) could improve response times for frequent predictions. Edge caching through a CDN could reduce latency for global users. Query result caching could optimize repeated predictions. Implementation of request coalescing could reduce load during high-concurrency scenarios.
 
