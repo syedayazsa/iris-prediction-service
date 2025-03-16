@@ -2,9 +2,11 @@
 Module that defines a class to handle loading and inference of the Iris model.
 """
 
-import joblib
-from typing import List
 from pathlib import Path
+from typing import List, cast
+
+import joblib
+import numpy as np
 
 
 class IrisModelService:
@@ -48,4 +50,6 @@ class IrisModelService:
         Returns:
             List[List[float]]: A list of probability distributions across classes.
         """
-        return self._model.predict_proba(inputs).tolist()
+        # Cast the numpy array to a list of lists of floats
+        probabilities = self._model.predict_proba(inputs)
+        return cast(List[List[float]], probabilities.tolist())

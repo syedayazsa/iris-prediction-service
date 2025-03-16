@@ -3,13 +3,16 @@ A simplified logging setup for the Iris prediction service.
 Logs everything to stdout in JSON format and captures both 4xx and 5xx errors.
 """
 
-import logging
 import json
+import logging
 import time
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from functools import wraps
-from dataclasses import dataclass, asdict
-from flask import request, has_request_context
+from typing import Optional
+
+from flask import has_request_context, request
+
 
 @dataclass
 class RequestMetrics:
@@ -23,7 +26,7 @@ class RequestMetrics:
     status_code: int
     latency_ms: float
     request_id: str
-    error: str = None
+    error: Optional[str] = None
 
 class JsonFormatter(logging.Formatter):
     """

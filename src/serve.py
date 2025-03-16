@@ -1,8 +1,9 @@
-import json
 import os
 import time
-from flask import Flask, request, jsonify
 from datetime import datetime
+
+from flask import Flask, jsonify, request
+
 from src.model_service import IrisModelService
 from src.utils.logging_config import iris_logger, log_request
 

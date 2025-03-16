@@ -2,16 +2,19 @@
 Train a RandomForest model on the Iris dataset and save it locally.
 """
 
+import json
+from pathlib import Path
+from typing import Union
+
 import joblib
 from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
-import json
-from pathlib import Path
+from sklearn.model_selection import train_test_split
+
 
 def train_and_save_model(
-    model_dir: str = "models",
+    model_dir: Union[str, Path] = "models",
     model_name: str = "iris_model",
     test_size: float = 0.2,
     random_state: int = 42
@@ -20,7 +23,7 @@ def train_and_save_model(
     Train a RandomForest on the Iris dataset, evaluate it, and save the model.
     
     Args:
-        model_dir (str): Directory to save model artifacts.
+        model_dir (Union[str, Path]): Directory to save model artifacts.
         model_name (str): Name of the model (used for files).
         test_size (float): Proportion of dataset to include in the test split.
         random_state (int): Random state for reproducibility.

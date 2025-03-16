@@ -2,8 +2,9 @@
 A Gradio-based front-end for interactive Iris model predictions.
 """
 
+from typing import Tuple, Dict, Any, List, cast
+
 import gradio as gr
-from typing import Tuple
 import requests
 
 
@@ -24,8 +25,7 @@ class GradioIrisDemo:
     def predict_single_sample(self, sepal_length: float, sepal_width: float,
                               petal_length: float, petal_width: float) -> str:
         """
-        Gradio callback to predict the species given a single flower's measurements.
-        Returns the class label.
+        Gradio callback for predicting a single Iris sample.
 
         Args:
             sepal_length (float): Length of the sepal in cm.
@@ -39,7 +39,8 @@ class GradioIrisDemo:
         inputs = [[sepal_length, sepal_width, petal_length, petal_width]]
         response = requests.post(f"{self.api_url}/predict", json={"input": inputs})
         if response.status_code == 200:
-            return response.json()["prediction"][0]
+            result = cast(Dict[str, List[str]], response.json())
+            return result["prediction"][0]
         return f"Error: {response.text}"
 
     def predict_with_confidence(self, sepal_length: float, sepal_width: float,
@@ -62,9 +63,9 @@ class GradioIrisDemo:
         if response.status_code != 200:
             return "Error", f"API request failed: {response.text}"
             
-        result = response.json()
-        predicted = result["prediction"][0]
-        probs = result["probabilities"][0]
+        result = cast(Dict[str, Any], response.json())
+        predicted = cast(str, result["prediction"][0])
+        probs = cast(List[float], result["probabilities"][0])
         formatted_probs = f"Probabilities => setosa: {probs[0]:.2f}, versicolor: {probs[1]:.2f}, virginica: {probs[2]:.2f}"
         return predicted, formatted_probs
 

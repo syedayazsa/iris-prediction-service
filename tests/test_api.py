@@ -2,12 +2,14 @@
 Integration tests for the Flask API endpoints.
 """
 
-import json
-import pytest
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+import pytest
+
 from src.serve import app
 from src.train import train_and_save_model
+
 
 @pytest.fixture(scope="session")
 def test_model():
